@@ -1,4 +1,9 @@
 variable "aws_region" {
-  default = "us-east-1"
+  description = "AWS region"
+  default     = "us-east-1"
 }
-# Define other variables for ARNs and Subnet IDs here...
+
+variable "ecr_name" {
+  description = "Name of the ECR repository"
+  default     = "flask-app-repo"
+}
