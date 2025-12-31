@@ -1,0 +1,29 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# --- Terraform ---
+# Local terraform directory (binaries)
+.terraform/
+# Lock file
+.terraform.lock.hcl
+# State files (these should be in S3, not Git!)
+*.tfstate
+*.tfstate.backup
+# Variables file (where you might store secrets locally)
+*.tfvars
+*.tfvars.json
+
+# --- Environment & Secrets ---
+.env
+.aws/
+.kube/
+aws_credentials
+
+# --- OS Junk ---
+.DS_Store
+Thumbs.db
