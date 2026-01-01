@@ -1,9 +1,9 @@
 terraform {
   backend "s3" {
-    bucket         = "omer-terraform-eks" # MUST EXIST IN AWS
-    key            = "eks-pipeline/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
+    bucket  = "omer-terraform-eks" # MUST EXIST IN AWS
+    key     = "eks-pipeline/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
   }
   required_providers {
     aws = {

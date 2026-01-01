@@ -23,20 +23,34 @@ resource "aws_iam_openid_connect_provider" "oidc" {
   url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
 
+# Public Node Group
 resource "aws_eks_node_group" "public" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "public-nodes"
   node_role_arn   = var.node_role_arn
   subnet_ids      = [var.public_subnet_id]
-  scaling_config  { desired_size = 1; max_size = 1; min_size = 1 }
-  instance_types  = ["t3.medium"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 1
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
 }
 
+# Private Node Group
 resource "aws_eks_node_group" "private" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "private-nodes"
   node_role_arn   = var.node_role_arn
   subnet_ids      = [var.private_subnet_id]
-  scaling_config  { desired_size = 1; max_size = 1; min_size = 1 }
-  instance_types  = ["t3.medium"]
+
+  scaling_config {
+    desired_size = 1
+    max_size     = 1
+    min_size     = 1
+  }
+
+  instance_types = ["t3.medium"]
 }
