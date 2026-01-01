@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service # Must match the kubectl command above
+spec:
+  type: LoadBalancer  # This tells AWS to create the URL
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: flask-app

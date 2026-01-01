@@ -43,3 +43,14 @@ jobs:
           helm upgrade --install flask-app ./helm/flask-app \
             --set image.repository=021891609039.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo \
             --set image.tag=latest
+            
+      - name: Get Service URL
+        run: |
+          echo "Waiting for LoadBalancer to be assigned..."
+          sleep 15
+          # This gets the External IP (DNS) of your service
+          SERVICE_URL=$(kubectl get svc flask-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "----------------------------------------------------------"
+          echo "DEPLOYMENT SUCCESSFUL!"
+          echo "Your Application URL is: http://$SERVICE_URL"
+          echo "----------------------------------------------------------"      
