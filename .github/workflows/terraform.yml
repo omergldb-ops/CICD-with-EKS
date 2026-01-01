@@ -11,6 +11,12 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     steps:
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0" # Specify a version for stability
+          
       - uses: actions/checkout@v4
       - name: Terraform Init & Apply
         run: |
