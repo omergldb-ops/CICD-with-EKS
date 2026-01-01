@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'terraform/**' # Only triggers when infra changes
+  workflow_dispatch:    
 
 jobs:
   terraform:
