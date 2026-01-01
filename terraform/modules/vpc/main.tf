@@ -35,7 +35,7 @@ resource "aws_nat_gateway" "nat" {
 # Private Subnet (Where EKS Nodes live)
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.2.0/24"
+  cidr_block        = "10.0.3.0/24"
   availability_zone = "us-east-1b"
   tags = {
     Name                              = "private-subnet"
@@ -52,7 +52,6 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Private Route Table (Sending traffic to NAT Gateway)
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
   route {
