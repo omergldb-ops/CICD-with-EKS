@@ -1,77 +1,45 @@
 name: "CI/CD - Build, Deploy & Monitor"
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'app/**'
-      - 'helm/**'
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Terraform Infrastructure"] # Wait for infra to finish
+    types: [completed]
+  workflow_dispatch: # Keeps your manual button just in case
 
 jobs:
   build-and-deploy:
-    name: "Build, Push, and Deploy"
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    
     steps:
-      - name: "Checkout Code"
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: "Configure AWS Credentials"
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: "Login to Amazon ECR"
+      - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: "Build, Tag, and Push Image to ECR"
+      - name: Build and Push Docker Image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: flask-app-repo
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./app
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "IMAGE_URL=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          # We MUST move into the 'app' folder where your Dockerfile is
+          cd app
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: "Update Kubeconfig for EKS"
-        run: |
-          aws eks update-kubeconfig --name devops-eks-cluster --region us-east-1
+      - name: Update Kubeconfig
+        run: aws eks update-kubeconfig --name devops-eks --region us-east-1
 
-      - name: "Deploy Monitoring Stack (Bonus 2)"
+      - name: Deploy with Helm
         run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          # Install Prometheus/Grafana into a dedicated namespace for security and organization
-          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-            --namespace monitoring --create-namespace \
-            --set grafana.enabled=true \
-            --wait --timeout 10m
-
-      - name: "Deploy Flask Application using Helm"
-        run: |
+          # Using the helm chart in your 'helm/flask-app' folder
           helm upgrade --install flask-app ./helm/flask-app \
-            --set image.repository=${{ steps.login-ecr.outputs.registry }}/flask-app-repo \
-            --set image.tag=${{ github.sha }} \
-            --wait --timeout 5m
-
-      - name: "Output Public Endpoints"
-        run: |
-          echo "Fetching LoadBalancer DNS names..."
-          APP_URL=""
-          while [ -z "$APP_URL" ]; do
-            APP_URL=$(kubectl get svc flask-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            [ -z "$APP_URL" ] && sleep 10
-          done
-          
-          GRAFANA_URL=$(kubectl get svc -n monitoring monitoring-grafana -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          
-          echo "--------------------------------------------------------"
-          echo "APPLICATION URL: http://$APP_URL"
-          echo "GRAFANA URL (Monitoring): http://$GRAFANA_URL"
-          echo "--------------------------------------------------------"
+            --set image.repository=021891609039.dkr.ecr.us-east-1.amazonaws.com/flask-app-repo \
+            --set image.tag=latest
