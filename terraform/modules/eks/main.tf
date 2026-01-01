@@ -1,16 +1,25 @@
 resource "aws_eks_cluster" "this" {
   name     = "devops-eks"
   role_arn = var.cluster_role_arn
-  version  = "1.28"
+  version  = "1.31" # Kept at 1.31 for AMI compatibility
+
   vpc_config {
     subnet_ids = [var.public_subnet_id, var.private_subnet_id]
   }
 }
 
+# 1. FIX: Add explicit dependencies for Add-ons
 resource "aws_eks_addon" "addons" {
   for_each     = toset(["vpc-cni", "coredns", "kube-proxy"])
   cluster_name = aws_eks_cluster.this.name
   addon_name   = each.value
+
+  # This ensures the Node Groups exist BEFORE trying to install Add-ons
+  # This prevents the 'DEGRADED' timeout error you saw
+  depends_on = [
+    aws_eks_node_group.public,
+    aws_eks_node_group.private
+  ]
 }
 
 data "tls_certificate" "eks" {
@@ -29,6 +38,7 @@ resource "aws_eks_node_group" "public" {
   node_group_name = "public-nodes"
   node_role_arn   = var.node_role_arn
   subnet_ids      = [var.public_subnet_id]
+  version         = "1.31" # Explicitly match cluster version
 
   scaling_config {
     desired_size = 1
@@ -37,14 +47,18 @@ resource "aws_eks_node_group" "public" {
   }
 
   instance_types = ["t3.medium"]
+  
+  # Ensure cluster is fully active before nodes try to join
+  depends_on = [aws_eks_cluster.this]
 }
 
-# Private Node Group
+# Private Node Group (Ensure this is in your file too!)
 resource "aws_eks_node_group" "private" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "private-nodes"
   node_role_arn   = var.node_role_arn
   subnet_ids      = [var.private_subnet_id]
+  version         = "1.31" # Explicitly match cluster version
 
   scaling_config {
     desired_size = 1
@@ -53,4 +67,6 @@ resource "aws_eks_node_group" "private" {
   }
 
   instance_types = ["t3.medium"]
+
+  depends_on = [aws_eks_cluster.this]
 }
